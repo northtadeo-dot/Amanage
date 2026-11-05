@@ -1,0 +1,8 @@
+{
+  "name": "AMANAGE",
+  "short_name": "AMANAGE",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#060b1d",
+  "theme_color": "#060b1d"
+}

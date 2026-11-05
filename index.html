@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AMANAGE – Smart Personal Finance</title>
+<meta name="description" content="Track your income, control your expenses, and achieve your financial goals with AMANAGE.">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AMANAGE">
+<meta name="theme-color" content="#060b1d">
+<link rel="manifest" href="manifest.json">
+
+<!-- Preconnect ke origin penting untuk mempercepat LCP & koneksi -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://amanage-app.firebaseapp.com">
+<link rel="preconnect" href="https://apis.google.com">
+
+<!-- Non-blocking Google Fonts loading -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+</noscript>
+
+<!-- Critical CSS -->
+<link rel="stylesheet" href="style.css">
+
+<!-- Skrip eksternal dimuat secara non-blocking dengan defer -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+<script src="https://unpkg.com/lucide@0.383.0/dist/umd/lucide.min.js" defer></script>
+<script type="module" src="script.js" defer></script>
+</head>
+<body>
+
+<!-- LOADING SCREEN ANIMASI DOMPET -->
+<div id="appLoader" class="app-loader">
+  <div class="loader-box">
+    <div class="loader-icon-wrap">
+      <i data-lucide="wallet" class="loader-wallet"></i>
+    </div>
+    <h2>AMANAGE</h2>
+    <p>Memuat dompet pintar Anda...</p>
+  </div>
+</div>
+
+<div class="shell gone" id="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="logo"><i data-lucide="wallet"></i><span class="lbl">AMANAGE</span></div>
+    <button class="nav-add" id="addBtn" aria-label="Add Transaction"><span class="ic"><i data-lucide="plus"></i></span><span class="lbl">Add Transaction</span></button>
+    <nav id="nav1" class="flex flex-col gap-2 -mt-3" aria-label="Navigasi Utama"></nav>
+    <nav id="nav2" class="flex flex-col gap-2 mt-auto" aria-label="Navigasi Sekunder"></nav>
+  </aside>
+
+  <main class="flex-1 min-w-0 p-5 lg:p-8">
+    <header class="flex flex-wrap items-center gap-3 mb-6">
+      <button id="backBtn" class="icb hidden" aria-label="Kembali"><i data-lucide="arrow-left"></i></button>
+      <button id="burger" class="icb lg:hidden" aria-label="Menu"><i data-lucide="menu"></i></button>
+      <button id="collapse" class="icb hidden lg:grid" aria-label="Perkecil sidebar"><i data-lucide="panel-left"></i></button>
+      <div class="mut text-sm flex items-center gap-2 flex-wrap">
+        <i data-lucide="home" class="w-4 h-4"></i> Home <span>/</span>
+        <span id="crumb" class="font-semibold">Dashboard</span> <span>/</span>
+        <i data-lucide="calendar" class="w-4 h-4"></i><span id="today"></span>
+      </div>
+      <div class="flex items-center gap-2 ml-auto flex-wrap">
+        <button id="themeToggle" class="icb" aria-label="Ganti Tema"><i data-lucide="sun" id="themeIcon"></i></button>
+        <label class="search"><i data-lucide="search" class="w-4 h-4"></i><input id="q" placeholder="Cari transaksi…" aria-label="Cari transaksi"></label>
+        <div class="relative">
+          <button id="bell" class="icb" aria-label="Notifikasi"><i data-lucide="bell"></i><b id="dot" class="dot hidden"></b></button>
+          <div id="bellPanel" class="pop hidden"></div>
+        </div>
+        <div id="avatar" class="avatar" role="img" aria-label="Avatar Pengguna"></div>
+      </div>
+    </header>
+
+    <!-- DASHBOARD -->
+    <section id="p-dashboard" class="page on">
+      <h1 class="hero">Manage Your Money Smarter!</h1>
+      <p class="mut text-sm mb-4 max-w-md">Track your income, control your expenses, and achieve your financial goals.</p>
+      
+      <!-- Menu Utama Beranda -->
+      <div class="card mb-6 p-4 col-blue">
+        <h3 class="mb-3 text-sm font-semibold">Menu Utama</h3>
+        <div id="dashNavBox" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3">
+          <button class="dash-nav-btn" data-p="start_invest" onclick="window.open('https://bibit.id/', '_blank')">
+            <span class="ic"><i data-lucide="trending-up"></i></span>
+            <span class="lbl">Mulai Investasi</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="riskBar" class="riskbar gone" role="alert"></div>
+      <div id="stats" class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-4"></div>
+      <div class="grid xl:grid-cols-3 gap-4 mt-4">
+        <div class="card col-yellow" id="impactCard"></div>
+        <div class="card col-green" id="safetyCard"></div>
+        <div class="card col-pink" id="debtCard"></div>
+      </div>
+    </section>
+
+    <!-- TRANSACTIONS -->
+    <section id="p-transactions" class="page">
+      <h1 class="hero2" id="txTitle">Transactions</h1>
+      <div class="card col-blue">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+          <select id="fType" class="in" aria-label="Filter jenis transaksi"><option value="all">Semua jenis</option><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option></select>
+          <select id="fCat" class="in" aria-label="Filter kategori"></select>
+          <input type="date" id="fDate" class="in" aria-label="Tanggal">
+          <button class="btn" id="fReset">Reset filter</button>
+        </div>
+        <div id="txList"></div>
+      </div>
+    </section>
+
+    <!-- BUDGET -->
+    <section id="p-budget" class="page">
+      <h1 class="hero2">Budget</h1>
+      <div class="grid lg:grid-cols-3 gap-4">
+        <div class="card col-yellow">
+          <h3 class="mb-3">Anggaran Bulanan</h3>
+          <div class="flex gap-2 mb-3"><input id="bMonthly" type="number" min="0" class="in" aria-label="Anggaran bulanan"><button class="btn btn-p" id="bSave">Simpan</button></div>
+          <button class="btn w-full justify-center mb-3" id="bAutoDistribute"><i data-lucide="pie-chart" class="w-4 h-4"></i> Bagi Rata ke Kategori</button>
+          <div class="pt-4 border-t border-[var(--line)]">
+            <button class="btn w-full justify-center !bg-red-500 !text-white !border-black hover:!bg-red-600 font-bold" id="quickAddEmergency" style="box-shadow: 3px 3px 0px var(--line);">
+              <i data-lucide="shield" class="w-4 h-4 text-white"></i> Tambah Dana Darurat
+            </button>
+          </div>
+          <div class="pt-3">
+            <button class="btn w-full justify-center !bg-blue-600 !text-white !border-black hover:!bg-blue-700 font-bold" id="btnStartInvest" style="box-shadow: 3px 3px 0px var(--line);" onclick="window.open('https://bibit.id/', '_blank')">
+              <i data-lucide="trending-up" class="w-4 h-4 text-white"></i> Mulai Investasi
+            </button>
+          </div>
+          <div id="bSummary" class="mt-5"></div>
+        </div>
+        <div class="card col-green lg:col-span-2"><h3 class="mb-3">Anggaran per Kategori</h3><div id="bCats"></div></div>
+        <div class="card col-purple lg:col-span-3"><h3 class="mb-3">Riwayat Peringatan</h3><div id="bLog"></div></div>
+      </div>
+    </section>
+
+    <!-- CURRENCY -->
+    <section id="p-currency" class="page">
+      <div class="flex justify-between items-center gap-3 flex-wrap"><h1 class="hero2">Currency Exchange</h1><button class="btn btn-p" id="fxRefresh"><i data-lucide="refresh-cw" class="w-4 h-4"></i> Refresh kurs</button></div>
+      <p id="fxMeta" class="mut text-sm"></p>
+      <p id="fxErr" class="text-amber-400 text-sm"></p>
+      <div id="fxCards" class="grid grid-cols-2 lg:grid-cols-4 gap-4 my-4"></div>
+      <div class="grid lg:grid-cols-3 gap-4 mt-5">
+        <div class="card col-blue lg:col-span-2">
+          <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+            <h3 id="chartTitle">USD → IDR, 30 hari terakhir</h3>
+            <select id="chartCur" class="in w-auto text-xs py-1 px-2" aria-label="Pilih mata uang chart"></select>
+          </div>
+          <div class="relative h-64"><canvas id="cFx"></canvas></div>
+        </div>
+        <div class="card col-orange">
+          <h3 class="mb-3">Konverter</h3>
+          <input id="cvAmt" type="number" min="0" value="100" class="in mb-2" aria-label="Jumlah konversi">
+          <select id="cvFrom" class="in mb-2" aria-label="Mata uang asal"></select>
+          <button class="btn w-full mb-2" id="cvSwap"><i data-lucide="repeat" class="w-4 h-4"></i> Swap</button>
+          <select id="cvTo" class="in mb-4" aria-label="Mata uang tujuan"></select>
+          <p class="big" id="cvOut"></p><p class="mut text-xs mt-1" id="cvRate"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- REPORTS -->
+    <section id="p-reports" class="page">
+      <div class="flex justify-between items-center gap-3 flex-wrap mb-4">
+        <h1 class="hero2">Reports</h1>
+        <div class="flex gap-2">
+          <select id="rPeriod" class="in w-auto" aria-label="Periode laporan"><option value="weekly">Mingguan</option><option value="monthly" selected>Bulanan</option><option value="yearly">Tahunan</option></select>
+          <button class="btn btn-p" id="rExport"><i data-lucide="arrow-down-left" class="w-4 h-4"></i> Export CSV</button>
+        </div>
+      </div>
+      <div id="rStats" class="grid md:grid-cols-3 gap-4 mb-4"></div>
+      <div class="grid lg:grid-cols-1 gap-4 mt-4">
+        <div class="card col-purple"><h3 class="mb-3">Pengeluaran per Kategori</h3><div class="relative h-64"><canvas id="rCat"></canvas></div></div>
+      </div>
+    </section>
+
+    <!-- ACCOUNT -->
+    <section id="p-account" class="page">
+      <h1 class="hero2">Account</h1>
+      <div class="card col-purple max-w-xl grid gap-4">
+        <div class="flex items-center gap-4">
+          <div id="accAvatar" class="avatar" style="width: 64px; height: 64px; font-size: 1.5rem;" role="img" aria-label="Avatar Akun"></div>
+          <div>
+            <h3 id="accName" class="text-lg font-bold"></h3>
+            <p id="accEmail" class="mut text-sm"></p>
+          </div>
+        </div>
+        <div class="border-t border-[var(--line)] pt-4 mt-2">
+          <p class="text-sm font-semibold mb-2">Sesi Akun</p>
+          <button class="btn danger" id="accLogoutBtn"><i data-lucide="log-out" class="w-4 h-4"></i> Keluar dari Akun</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="p-settings" class="page">
+      <h1 class="hero2">Settings</h1>
+      <div class="card col-blue max-w-xl grid gap-4">
+        <label class="grid gap-1 text-sm">Nama pengguna<input id="sName" class="in" maxlength="30" aria-label="Nama pengguna"></label>
+        <label class="grid gap-1 text-sm">Bahasa aplikasi<select id="sLang" class="in" aria-label="Bahasa aplikasi"><option value="id">Bahasa Indonesia</option><option value="en">English</option></select></label>
+        <label class="grid gap-1 text-sm">Mata uang utama<select id="sCur" class="in" aria-label="Mata uang utama"></select></label>
+        <label class="grid gap-1 text-sm">Batas anggaran bulanan<input id="sBudget" type="number" min="0" class="in" aria-label="Batas anggaran bulanan"></label>
+        <label class="flex items-center gap-2 text-sm"><input id="sIrr" type="checkbox" class="w-4 h-4"> Penghasilan tidak tetap (freelance/harian)</label>
+        <label class="grid gap-1 text-sm">Porsi berbagi dari surplus (%)<input id="sGive" type="number" min="0" max="100" class="in" aria-label="Porsi berbagi dari surplus"></label>
+        <label class="flex items-center gap-2 text-sm"><input id="sAlerts" type="checkbox" class="w-4 h-4"> Aktifkan notifikasi pengeluaran boros</label>
+        <div class="flex gap-2 flex-wrap"><button class="btn btn-p" id="sSave">Simpan pengaturan</button><button class="btn danger" id="sReset">Reset data aplikasi</button></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- LOGIN / REGISTER -->
+<div id="auth" class="auth gone">
+  <form id="authForm" class="card col-pink auth-card grid gap-3" novalidate>
+    <div class="flex justify-between items-center">
+      <div class="logo"><i data-lucide="wallet"></i><span class="lbl">AMANAGE</span></div>
+      <div class="seg" id="authLang" role="group" aria-label="Language"><button type="button" data-l="id">ID</button><button type="button" data-l="en">EN</button></div>
+    </div>
+    <div class="seg"><button type="button" data-am="login" class="on">Masuk</button><button type="button" data-am="register">Daftar</button></div>
+    <label class="grid gap-1 text-sm" id="aNameW">Nama<input id="aName" class="in" maxlength="30" autocomplete="name" aria-label="Nama"></label>
+    <label class="grid gap-1 text-sm">Email<input id="aEmail" type="email" class="in" autocomplete="email" aria-label="Email"></label>
+    <label class="grid gap-1 text-sm">Kata sandi<input id="aPw" type="password" class="in" autocomplete="current-password" aria-label="Kata sandi"></label>
+    <label class="grid gap-1 text-sm" id="aPw2W">Ulangi kata sandi<input id="aPw2" type="password" class="in" autocomplete="new-password" aria-label="Ulangi kata sandi"></label>
+    <label class="flex items-center gap-2 text-sm"><input id="aRem" type="checkbox" class="w-4 h-4" checked> Ingat saya</label>
+    <p id="aErr" class="text-sm rt min-h-[1.25rem]" role="alert"></p>
+    <button class="btn btn-p justify-center" id="aSubmit" type="submit"></button>
+    <p class="mut text-xs">Akun dan data disimpan di cloud secara aman.</p>
+  </form>
+</div>
+
+<!-- MODAL TRANSAKSI -->
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Modal Transaksi">
+  <form id="form" class="card col-yellow w-full max-w-md grid gap-4 p-5 max-h-[85vh] overflow-y-auto" novalidate>
+    <div class="flex justify-between items-center sticky top-0 bg-[var(--panel)] py-1 z-10 border-b border-[var(--line)] pb-3">
+      <div>
+        <h3 id="mTitle" class="text-lg font-bold">Catat pengeluaran</h3>
+        <p class="mut text-xs" id="mSubtitle">Tiga ketukan, selesai.</p>
+      </div>
+      <button type="button" class="icb sm flex-shrink-0" id="mClose" aria-label="Tutup"><i data-lucide="x"></i></button>
+    </div>
+    <input type="hidden" id="m-id">
+    
+    <div class="flex p-1 bg-[var(--panel)] rounded-full border-2 border-[var(--line)] mt-2" id="mTypeSeg" role="group" aria-label="Tipe Transaksi">
+      <button type="button" data-val="expense" class="flex-1 flex items-center justify-center gap-2 py-2 rounded-full text-sm font-bold transition on"><i data-lucide="arrow-up-right" class="w-4 h-4"></i> Pengeluaran</button>
+      <button type="button" data-val="income" class="flex-1 flex items-center justify-center gap-2 py-2 rounded-full text-sm font-bold transition"><i data-lucide="arrow-down-left" class="w-4 h-4"></i> Pemasukan</button>
+    </div>
+    <input type="hidden" id="m-type" value="expense">
+
+    <div class="grid gap-1">
+      <label class="text-xs mut font-medium" for="m-amount">Nominal</label>
+      <div class="input-currency-wrapper">
+        <span class="input-currency-symbol" id="mCurrencySymbol">Rp</span>
+        <input id="m-amount" type="number" min="0" step="any" class="in input-currency-field" placeholder="0" aria-label="Nominal">
+      </div>
+      <div class="flex gap-2 mt-2 flex-wrap" id="quickAmounts">
+        <button type="button" class="chip-amt" data-base="10" data-val="10000">10 rb</button>
+        <button type="button" class="chip-amt" data-base="25" data-val="25000">25 rb</button>
+        <button type="button" class="chip-amt" data-base="50" data-val="50000">50 rb</button>
+        <button type="button" class="chip-amt" data-base="100" data-val="100000">100 rb</button>
+      </div>
+    </div>
+
+    <div class="grid gap-1">
+      <label class="text-xs mut font-medium">Kategori</label>
+      <div id="m-catGrid" class="grid grid-cols-3 gap-2"></div>
+      <input type="hidden" id="m-cat">
+    </div>
+
+    <label class="grid gap-1 text-sm" id="m-originW">Tempat belanja<select id="m-origin" class="in" aria-label="Tempat belanja"><option value="">Belum ditandai</option><option value="local">UMKM / Usaha Lokal</option><option value="big">Korporasi Besar / Impor</option></select></label>
+    
+    <label class="grid gap-1 text-sm">Catatan (opsional)<input id="m-title" class="in" maxlength="60" placeholder="Mis. kopi pagi" aria-label="Catatan"></label>
+    <input type="hidden" id="m-cur" value="IDR">
+    
+    <div class="grid gap-1 text-sm">
+      <label class="text-xs mut font-medium" for="m-date">Tanggal</label>
+      <div class="flex items-center justify-between p-3 rounded-xl bg-[var(--panel)] border-2 border-[var(--line)]">
+        <div class="flex items-center gap-2 text-sm font-semibold">
+          <i data-lucide="calendar" class="w-4 h-4"></i>
+          <span id="mDateDisplay">Hari ini</span>
+        </div>
+        <input type="date" id="m-date" class="in w-auto text-xs py-1" aria-label="Tanggal Transaksi">
+      </div>
+    </div>
+
+    <button class="btn btn-p justify-center py-3 text-base font-bold mt-2" id="mSubmitBtn" type="button">✓ Simpan pengeluaran</button>
+  </form>
+</div>
+<div id="toasts" aria-live="polite"></div>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('Service Worker terdaftar:', reg.scope))
+        .catch(err => console.log('Gagal mendaftarkan Service Worker:', err));
+    });
+  }
+</script>
+</body>
+</html>
